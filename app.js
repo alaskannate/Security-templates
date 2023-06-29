@@ -14,7 +14,7 @@ app.use(bodyParser.urlencoded({
 
 
 
-const uri = "mongodb+srv://nateewing93:Travelin.20@cluster0.cxhnnxh.mongodb.net/?retryWrites=true&w=majority";
+const uri = "mongodb+srv://nateewing93:Travelin.20@cluster0.cxhnnxh.mongodb.net/userDB?retryWrites=true&w=majority";
 
 async function connect() {
     try {
@@ -48,7 +48,7 @@ app.get("/register", (req, res) => {
 });
 
 app.get("/submit", (req, res) => {
-
+    
 });
 
 app.post("/register", (req, res) => {
@@ -68,7 +68,7 @@ app.post("/register", (req, res) => {
 
 app.post("/login", (req, res) => {
 
-    const userName = req.body.username;
+    const userName = req.body.email;
     const password = req.body.password;
 
     User.findOne({
@@ -77,7 +77,7 @@ app.post("/login", (req, res) => {
         .then(user => {
             if (!user) {
                 res.send('User not found');
-            } else if (password === user.passwor) {
+            } else if (password === user.password) {
                 res.render('secrets');
             } else {
                 res.send('Incorrect password')
@@ -88,12 +88,7 @@ app.post("/login", (req, res) => {
             res.status(500).send("An error occurred")
         });
 
-
-
-
 });
-
-
 
 
 app.listen(3000, () => {
