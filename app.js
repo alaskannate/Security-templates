@@ -1,8 +1,11 @@
 //jshint esversion:6
+require('dotenv').config()
 const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require('ejs');
 const mongoose = require('mongoose');
+const encrypt = require('mongoose-encryption');
+const { CONNREFUSED } = require('dns');
 
 const app = express();
 
@@ -13,7 +16,7 @@ app.use(bodyParser.urlencoded({
 }));
 
 
-
+//connect to mongo db 
 const uri = "mongodb+srv://nateewing93:Travelin.20@cluster0.cxhnnxh.mongodb.net/userDB?retryWrites=true&w=majority";
 
 async function connect() {
@@ -27,10 +30,16 @@ async function connect() {
 connect()
 
 
-const userSchema = {
+
+//new user schema.
+const userSchema = new mongoose.Schema ({
     email: String,
     password: String,
-};
+});
+
+//encription plugin
+
+userSchema.plugin(encrypt, { secret: process.env.SECRET, encryptedFeilds: ["password"] });
 
 const User = new mongoose.model("User", userSchema);
 
