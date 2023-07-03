@@ -4,7 +4,9 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require('ejs');
 const mongoose = require('mongoose');
-const md5 = require('md5');
+const session = require('express-session');
+const passport = require('passport');
+const passportLocalMongoose = require('passport-local-mongoose');
 
 const app = express();
 
@@ -14,8 +16,19 @@ app.use(bodyParser.urlencoded({
     extended: true
 }));
 
+app.use(session({
+    secret: 'A super secret secret',
+    resave: false,
+    saveUninitialized: false
+}));
 
-//connect to mongo db 
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+
+
+//Connect to mongo db 
 const uri = "mongodb+srv://nateewing93:Travelin.20@cluster0.cxhnnxh.mongodb.net/userDB?retryWrites=true&w=majority";
 
 async function connect() {
@@ -29,13 +42,20 @@ async function connect() {
 connect()
 
 //new user schema.
-const userSchema = new mongoose.Schema ({
+const userSchema = new mongoose.Schema({
     email: String,
     password: String,
 });
 
+userSchema.plugin(passportLocalMongoose);
+
 
 const User = new mongoose.model("User", userSchema);
+
+passport.use(User.createStrategy());
+
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
 
 
 app.get("/", (req, res) => {
@@ -50,46 +70,59 @@ app.get("/register", (req, res) => {
     res.render('register')
 });
 
-app.get("/submit", (req, res) => {
-    
+app.get('/secrets', (req, res) => {
+    if (req.isAuthenticated()) {
+        res.render("secrets")
+    } else {
+        res.redirect('/login')
+    }
 });
 
-app.post("/register", (req, res) => {
-    const newUser = new User({
-        email: req.body.username,
-        password: md5(req.body.password)
+app.get("/logout", (req, res) => {
+    req.logout((err) => {
+        console.log(err)
     });
+    res.redirect('/');
+});
 
-    newUser.save()
-        .then(() => {
-            res.render('secrets');
-        })
-        .catch(error => {
-            console.log(error);
-        });
+app.get("/submit", (req, res) => {
+
+});
+
+
+app.post("/register", (req, res) => {
+
+    User.register({
+        username: req.body.username
+    }, req.body.password, (err, user) => {
+        if (err) {
+            console.log(err);
+            res.redirect('/register');
+        } else {
+            passport.authenticate('local')(req, res, () => {
+                res.redirect('/secrets');
+            })
+        }
+    })
 });
 
 app.post("/login", (req, res) => {
 
-    const userName = req.body.email;
-    const password = md5(req.body.password);
+    const user = new User({
+        username: req.body.username,
+        password: req.body.password
+    });
 
-    User.findOne({
-            email: userName
-        })
-        .then(user => {
-            if (!user) {
-                res.send('User not found');
-            } else if (user.password === password) {
-                res.render('secrets');
-            } else {
-                res.send('Incorrect password')
-            }
-        })
-        .catch(error => {
-            console.log(error);
-            res.status(500).send("An error occurred")
-        });
+    req.login(user, (err) => {
+        if (err) {
+            console.log(err);
+        } else {
+            passport.authenticate('local')(req, res, () => {
+                res.redirect('/secrets');
+            })
+        };
+
+    });
 
 });
 
